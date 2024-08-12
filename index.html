@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Word Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { touch-action: none; overflow: hidden; }
+        #game-area { position: relative; overflow: hidden; }
+        #character { position: absolute; width: 50px; height: 50px; background-color: red; border-radius: 25px; }
+        .word { position: absolute; white-space: nowrap; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="game-area" class="w-full h-screen bg-blue-200">
+        <div id="character"></div>
+        <div id="score" class="absolute top-0 left-0 m-4 text-2xl font-bold">分数: 0</div>
+        <div id="timer" class="absolute top-0 right-0 m-4 text-2xl font-bold">3:00</div>
+    </div>
+
+    <div id="word-input" class="fixed bottom-0 left-0 w-full bg-white p-4 hidden">
+        <input type="text" id="word-text" class="w-full p-2 border rounded" placeholder="输入单词">
+        <button id="submit-word" class="mt-2 w-full bg-blue-500 text-white p-2 rounded">确定</button>
+    </div>
+
+    <script>
+        const character = document.getElementById('character');
+        const gameArea = document.getElementById('game-area');
+        const scoreElement = document.getElementById('score');
+        const timerElement = document.getElementById('timer');
+        const wordInput = document.getElementById('word-input');
+        const wordText = document.getElementById('word-text');
+        const submitWord = document.getElementById('submit-word');
+
+        let score = 0;
+        let timeLeft = 180; // 3 minutes
+        let words = [];
+        let touchStartX, touchStartY;
+        let characterX = 0, characterY = 0;
+        let gameInterval;
+
+        const wordList = ['常', '记', '溪', '亭', '日', '暮', '沉', '醉', '不', '知', '归', '路', '兴', '尽', '晚', '回', '舟', '误', '入', '藕', '花', '深', '处', '争', '渡', '惊', '起', '滩', '鸥', '鹭', '李', '清', '照', '如', '梦', '令', '宋', '朝', '常记', '溪亭', '日暮', '沉醉', '不知', '归路', '兴尽', '晚回舟', '误入', '藕花', '深处', '争渡·', '惊起', '一滩', '鸥鹭', '李清照', '宋朝', '女词人'];
+
+        function startGame() {
+            updateCharacterPosition();
+            gameInterval = setInterval(updateGame, 20);
+            setInterval(addWord, 2000);
+            setInterval(updateTimer, 1000);
+        }
+
+        function updateGame() {
+            moveWords();
+            checkCollision();
+        }
+
+        function addWord() {
+            const word = document.createElement('div');
+            word.className = 'word absolute text-lg';
+            word.textContent = wordList[Math.floor(Math.random() * wordList.length)];
+            word.style.left = gameArea.clientWidth + 'px';
+            word.style.top = Math.random() * (gameArea.clientHeight - 30) + 'px';
+            gameArea.appendChild(word);
+            words.push(word);
+        }
+
+        function moveWords() {
+            words.forEach(word => {
+                const left = parseInt(word.style.left) - 2;
+                if (left < -100) {
+                    gameArea.removeChild(word);
+                    words = words.filter(w => w !== word);
+                } else {
+                    word.style.left = left + 'px';
+                }
+            });
+        }
+
+        function checkCollision() {
+            const characterRect = character.getBoundingClientRect();
+            words.forEach(word => {
+                const wordRect = word.getBoundingClientRect();
+                if (characterRect.left < wordRect.right &&
+                    characterRect.right > wordRect.left &&
+                    characterRect.top < wordRect.bottom &&
+                    characterRect.bottom > wordRect.top) {
+                    showWordInput(word);
+                }
+            });
+        }
+
+        function showWordInput(word) {
+            wordInput.style.display = 'block';
+            wordText.value = '';
+            wordText.focus();
+            submitWord.onclick = () => {
+                if (wordText.value === word.textContent) {
+                    score++;
+                    scoreElement.textContent = `分数: ${score}`;
+                    gameArea.removeChild(word);
+                    words = words.filter(w => w !== word);
+                }
+                wordInput.style.display = 'none';
+            };
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            if (timeLeft <= 0) {
+                clearInterval(gameInterval);
+                alert('游戏结束!');
+            }
+        }
+
+        function updateCharacterPosition() {
+            character.style.left = characterX + 'px';
+            character.style.top = characterY + 'px';
+        }
+
+        gameArea.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+
+        gameArea.addEventListener('touchmove', (e) => {
+            const touchX = e.touches[0].clientX;
+            const touchY = e.touches[0].clientY;
+            const deltaX = touchX - touchStartX;
+            const deltaY = touchY - touchStartY;
+
+            characterX += deltaX;
+            characterY += deltaY;
+
+            characterX = Math.max(0, Math.min(characterX, gameArea.clientWidth - 50));
+            characterY = Math.max(0, Math.min(characterY, gameArea.clientHeight - 50));
+
+            updateCharacterPosition();
+
+            touchStartX = touchX;
+            touchStartY = touchY;
+        });
+
+        startGame();
+    </script>
+</body>
+</html>
